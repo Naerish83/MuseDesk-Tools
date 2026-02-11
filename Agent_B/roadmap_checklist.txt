@@ -1,0 +1,56 @@
+WeenieForge Master Roadmap
+* PHASE 1: EDITOR UX POLISH (Remaining)
+* 1.6 Bitmask Editor for Flags
+* 1.7 Clone-as-Custom Flow
+* 1.8 Search/Filter in Property Grid
+* 1.9 Keyboard Shortcuts
+* PHASE 2: VIEWPORT INTEGRATION
+* 2.1 Audit Legacy Viewer Source
+* 2.2 Embed Renderer in Forge Shell
+* 2.3 DAT Reload Trigger
+* 2.4 Click-to-Select in Viewport
+* 2.5 Texture Preview Thumbnails
+* 2.6 Landblock Grid Overlay
+* PHASE 3: TEXTURE PIPELINE
+* 3.1 Cloud Function Handshake
+* 3.2 Batch Processing Architecture
+* 3.3 Local Watcher Update
+* 3.4 Texture ID Assignment
+* 3.5 DXT5 Compression Pipeline
+* 3.6 Texture Inject + Verify
+* PHASE 4: SETUP MUTATION
+* 4.1 SetupMutationService Polish
+* 4.2 Palette Remapping
+* 4.3 Record Size Calculation
+* 4.4 Setup Injection Verification
+* 4.5 Batch Setup Mutations
+* PHASE 5: WEENIE EVOLUTION
+* 5.1 Custom Setup ID Linking
+* 5.2 Form-from-Void Wizard
+* 5.3 Weenie Templates
+* 5.4 Bulk Property Operations
+* 5.5 Export to SQL
+* PHASE 6: SPELL SMITH
+* 6.1 Custom Spell Creation
+* 6.2 Spell Icon Pipeline
+* 6.3 spell.dat Injection
+* 6.4 Spell Balance Calculator
+* 6.5 SpellSqlInjector Live Mode
+* PHASE 7: PET WEAVER & CREATURE TOOLS
+* 7.1 Creature Visual Extraction
+* 7.2 Shrink-Wrap to Pet Format
+* 7.3 Custom Creature Builder
+* 7.4 Creature Emote System
+* 7.5 AI Behavior Profiles
+* PHASE 8: WORLD ENGINE
+* 8.1 cell.dat Header Audit
+* 8.2 LandblockService Core
+* 8.3 Landblock Duplication
+* 8.4 Physics Mutation
+* 8.5 Sky-Continent Injection
+* 8.6 Terrain Texture Painting
+* 8.7 Object Placement Tool
+* 8.8 World Boundary Management
+* 8.9 Multi-Landblock Regions
+* 8.10 The Island Generator
+________________

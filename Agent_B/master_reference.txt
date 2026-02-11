@@ -1,0 +1,150 @@
+# WEENIEFORGE: SYSTEM ARCHITECTURE & CODING STANDARDS
+# STATUS: LIVE | VERSION: 2.0 (Feb 2026)
+# ARCHITECT: COLE | ENFORCER: SYLVA
+# CONTEXT: .NET 8.0 / WPF (MVVM) / C# 12 / SQLite
+
+[CRITICAL DIRECTIVE]
+This document is the SOURCE OF TRUTH. 
+- Do NOT hallucinate APIs. 
+- Do NOT invent new architectural patterns. 
+- Do NOT use hardcoded paths unless specified herein.
+- If a service is not listed, assume it must be injected via DI.
+
+--------------------------------------------------------------------------------
+1. PROJECT STRUCTURE (NAMESPACES)
+--------------------------------------------------------------------------------
+A. **WeenieForge.Core** (The Brain - Domain Logic, No UI)
+   - **Models**: 
+     - `Weenie` (The atomic unit)
+     - `Spell` (Magic system)
+     - `VisualAsset` (Textures/Models)
+     - `PropertyMetadata` (Rules for properties)
+   - **Interfaces**: 
+     - `IWeenieRepository` (CRUD for Weenies)
+     - `IReferenceDataProvider` (Read-only lookups)
+     - `ITextureService` (Texture manipulation)
+   - **Enums**: `PropertyType`, `WeenieType`, `LayerId`
+
+B. **WeenieForge.UI** (The Face - MVVM)
+   - **ViewModels**: 
+     - `MainViewModel` (Orchestrator)
+     - `PropertyGridVM` (The data editor)
+     - `ForgeShellVM` (The container)
+     - `AssetBrowserVM` (File picker)
+   - **Views**: `MainWindow.xaml`, `PropertyGridView.xaml`, `ForgeShellView.xaml`
+   - **Services**: `DialogService`, `FilePickerService`
+
+C. **WeenieForge.Quanta** (The Magic - DAT/Injection)
+   - **Services**: 
+     - `DatAppenderService` (Writes to client_portal.dat)
+     - `SetupMutationService` (Clones/remaps 0x10 records)
+     - `TextureInjector` (Handles .png -> .texture conversions)
+     - `LandblockService` (World geometry)
+   - **Structs**: `file_header`, `texture_header`, `landblock_header`
+
+--------------------------------------------------------------------------------
+2. THE "WEENIE" OBJECT MODEL
+--------------------------------------------------------------------------------
+The `Weenie` class is the core data structure. It mimics the ACE entity structure but is optimized for the editor.
+- **Identity**: `uint WeenieId` (WCID), `string Name`
+- **Data Storage** (Dictionaries for O(1) access):
+  - `Dictionary<PropertyInt, int> IntValues`
+  - `Dictionary<PropertyString, string> StringValues`
+  - `Dictionary<PropertyBool, bool> BoolValues`
+  - `Dictionary<PropertyFloat, double> FloatValues`
+  - `Dictionary<PropertyDataId, uint> DataIdValues` (References to textures, models, etc.)
+  - `Dictionary<PropertyInstanceId, uint> InstanceIdValues`
+- **Key Methods**: 
+  - `GetProperty<T>(key)`
+  - `SetProperty<T>(key, value)` (Must trigger IsDirty flag)
+
+--------------------------------------------------------------------------------
+3. DATA LAYER & PERSISTENCE
+--------------------------------------------------------------------------------
+- **Strategy**: Hybrid.
+  1. **Static Memory**: High-speed Dictionaries for runtime lookups.
+  2. **SQLite (`weenieforge_visual_reference.db`)**: 
+     - Read-only reference data.
+     - Tables: `texture_map` (remaster tracking), `meta_enumerations` (property labels), `ref_model_map`.
+  3. **ACE.Entity Reflection**: Fallback for unknown properties.
+- **Custom Asset Range**: `0x70000000` - `0x7FFFFFFF`
+  - *Constraint*: ALL custom textures, models, and sounds MUST use IDs in this range to avoid retail collisions.
+
+--------------------------------------------------------------------------------
+4. UI / VIEWMODEL RULES (MVVM)
+--------------------------------------------------------------------------------
+- **Library**: CommunityToolkit.Mvvm (v8.2+)
+- **Base Class**: Inherit from `ObservableObject`.
+- **Commands**: Use `[RelayCommand]` on methods.
+- **Properties**: Use `[ObservableProperty]` on private backing fields.
+- **Binding**: 
+  - `Mode=TwoWay` for input fields.
+  - `UpdateSourceTrigger=PropertyChanged` for real-time validation.
+- **Property Grid Logic**:
+  - `PropertyRowVM`: Represents a single row. Contains `OriginalValue` (Read-Only) and `CurrentValue` (Editable).
+  - `IsDirty`: Computed property. True if `CurrentValue != OriginalValue`.
+
+--------------------------------------------------------------------------------
+5. INJECTION PIPELINE (QUANTA)
+--------------------------------------------------------------------------------
+- **Texture Pipeline**:
+  - Source: `C:\Projects\Weenieforge\Output` (Watcher folder)
+  - Process: PNG -> DXT1/DXT5 -> DAT Block -> Injection
+  - Service: `TextureInjector`
+- **Setup Mutation**:
+  - Process: Clone 0x10 record -> Remap Texture DIDs to `0x70000000` range -> Calculate Size -> Inject.
+  - Service: `SetupMutationService`
+
+--------------------------------------------------------------------------------
+6. COMMON "HALLUCINATIONS" TO AVOID
+--------------------------------------------------------------------------------
+- ❌ There is no `Weenie.Save()`. Use `IWeenieRepository.Save(weenie)`.
+- ❌ Do NOT use `System.Drawing`. Use `ImageSharp` or `SkiaSharp` for image processing.
+- ❌ Do NOT hardcode file paths. Use `IPathService` or `AppConfig`.
+- ❌ Do NOT assume retail IDs are safe. Always check the `0x70000000` range.
+
+--------------------------------------------------------------------------------
+7. DEPENDENCY INJECTION (IoC CONTAINER)
+--------------------------------------------------------------------------------
+- **Framework**: Microsoft.Extensions.DependencyInjection
+- **Registration Point**: `App.xaml.cs` → `ConfigureServices()`
+- **Service Lifetimes**:
+  - **Singleton**: `IWeenieRepository`, `IReferenceDataProvider`, `IPathService`, `DatAppenderService`, `TextureInjector`
+  - **Transient**: ViewModels (each window gets fresh instance)
+  - **Scoped**: Not used (no request scope in desktop app)
+
+**Critical Pattern:**
+✅ ALWAYS inject services via constructor: `public PropertyGridVM(IWeenieRepository repo)`
+❌ NEVER use `new ServiceClass()` except for POCOs (models, DTOs, ViewModels when explicitly creating)
+
+**Example Registration:**
+```csharp
+
+--------------------------------------------------------------------------------
+8. FILE SYSTEM CONVENTIONS
+--------------------------------------------------------------------------------
+**Project Root**: `C:\Projects\WeenieForge\` (Development only—use IPathService in code)
+
+**Key Folders**:
+- `\DAT\`: client_portal.dat, cell.dat (retail + custom)
+- `\Output\`: Texture watcher folder (PNG sources)
+- `\Database\`: weenieforge_visual_reference.db
+- `\Config\`: appsettings.json
+
+**Path Resolution Rules:**
+✅ Use `IPathService.GetDatPath("client_portal.dat")`
+✅ Use `IPathService.GetOutputPath()`
+✅ Use `IPathService.GetDatabasePath()`
+❌ NEVER hardcode `C:\Projects\...` in production code
+❌ NEVER use relative paths like `..\..\DAT\` (breaks when running from different directories)
+
+**IPathService Contract** (For Reference):
+```csharp
+public interface IPathService
+{
+    string GetDatPath(string datFileName);
+    string GetOutputPath();
+    string GetDatabasePath();
+    string GetConfigPath();
+}
+```
